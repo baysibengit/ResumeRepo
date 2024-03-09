@@ -173,3 +173,15 @@ test_msdscript
 Documentation/
 msdscript
 
+# Exclude PNG files
+*.png
+
+# Exclude MP3 files
+*.mp3
+
+# Exclude JPEG files
+*.jpeg
+
+# Exclude JPG files 
+*.jpg
+
