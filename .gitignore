@@ -185,3 +185,18 @@ msdscript
 # Exclude JPG files 
 *.jpg
 
+# Android Studio
+gradle.properties
+gradle/wrapper/
+build.gradle.kts
+gradlew
+gradlew.bat
+settings.gradle.kts
+proguard-rules.pro
+androidTest/
+test/
+res/
+
+
+
+
