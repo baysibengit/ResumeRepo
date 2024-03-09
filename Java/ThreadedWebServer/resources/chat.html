@@ -1,0 +1,45 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <h1 align="center" style="color: white;">
+        WebChat
+    </h1>
+
+    <title>WebChat</title>
+    <link rel="stylesheet" type="text/css" href="chat.css">
+</head>
+<body style="background-color: #89ADA1;">
+    <script defer type="text/javascript" src="chat.js"> </script>
+    <div class="container"> <!-- Container div to center content -->
+        <div id = "content"> <!-- Inner div containing all the content -->
+            <table>
+                <tr>
+                    <td><label style="color: white;"><b>User:</b></label></td>
+                    <td><input type="text" id="user" value=""></td>
+
+                    <td><label style="color: white;"><b>Room:</b></label></td>
+                    <td><input type="text" id="room" value=""><button id="join">Join</button></td>
+                </tr>
+            </table>
+            <div style="display: table;">
+                <div style="display: table-row">
+                    <div id="leftSide" style="width: 250px; height: 500px; display: table-cell;">
+                        <h1 align="left" style="color: white;">Users</h1>
+                    </div>
+                    <div id="rightSide" style="width: 250px; height: 500px;display: table-cell;">
+                        <h1 align="left" style="color: white;">Chatroom</h1>
+                    </div>
+                </div>
+            </div>
+            <table>
+                <tr>
+                    <td><label style="color: white;"><b>Message:</b></label></td>
+                    <td><input type="text" id="message" value=""><button id="send">Send</button></td>
+                </tr>
+            </table>
+            <button id="leave">Leave</button>
+        </div>
+    </div>
+</body>
+</html>

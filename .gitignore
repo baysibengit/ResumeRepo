@@ -168,3 +168,8 @@ jspm_packages/
 # User-specific files
 *.sublime-workspace
 *.sln.docstates
+
+test_msdscript
+Documentation/
+msdscript
+
