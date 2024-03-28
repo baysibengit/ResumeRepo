@@ -1,4 +1,3 @@
-import javax.xml.crypto.Data;
 import java.io.*;
 import java.util.Arrays;
 import java.util.Date;
@@ -15,7 +14,15 @@ public class DNSRecord {
     private Date creationOfRecord_;
     private long recordTimeStamp_;
 
-
+    /**
+     * Parses and decodes DNS record to stores pertinent fields as members of a
+     * DNS record object
+     *
+     * @param inputStream stream that is reading in DNS query bytes
+     * @param message DNS message object
+     * @return DNS record object
+     * @throws IOException if I/O error occurs reading in bytes
+     */
     public static DNSRecord decodeRecord(InputStream inputStream, DNSMessage message) throws IOException {
 
         inputStream.mark(2);//2 to counteract first two bytes for pointer
@@ -48,6 +55,13 @@ public class DNSRecord {
         return record;
     }
 
+    /**
+     * Writes out members of DNS record to byte stream
+     *
+     * @param outputStream stream used to write out to
+     * @param hashMap cache where we have DNS question and record stored as key value pair
+     * @throws IOException if I/O error occurs while writing bytes out
+     */
     public void writeBytes(ByteArrayOutputStream outputStream, HashMap<String, Integer> hashMap) throws IOException {
 
         DNSMessage.writeDomainName(outputStream, hashMap, recordName_);
@@ -66,12 +80,12 @@ public class DNSRecord {
         outputStream.write((byte)RDLength_);
 
         outputStream.write(RData_);
-
     }
 
 
     /**
-     * return whether the creation date + the time to live is after the current time. The Date and Calendar classes will be useful for this.
+     * Checks if record is expired by checking its lifespan(TTL plus creation time stamp)
+     *
      * @return true if record is expired
      */
     public boolean isExpired() {

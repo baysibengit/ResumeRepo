@@ -13,6 +13,14 @@ public class DNSMessage {
     private ArrayList<DNSRecord> additionalRecords_ = new ArrayList<>();
 
 
+    /**
+     * Pareses DNS Message as stream of bytes. Stores necessary fields of DNS
+     * like questions and records
+     *
+     * @param bytes stream of bytes containing DNS query
+     * @return DNS message object with necessary fields stored in member variables
+     * @throws IOException if an I/O error occurs while reading the byte stream
+     */
     public static DNSMessage decodeMessage(byte[] bytes) throws IOException {
 
         DNSMessage message = new DNSMessage();
@@ -43,9 +51,11 @@ public class DNSMessage {
 
 
     /**
-     * read the pieces of a domain name starting from the current position of the input stream
+     * Reads in and stores the pieces of a domain name starting from the current position of the input stream
+     *
      * @param inputStream Stream used to read in bytes
      * @return string array containing domain name
+     * @throws IOException if I/O error occurred while reading from byte stream
      */
     public String[] readDomainName(InputStream inputStream) throws IOException {
         //If length is 0 return empty arraylist
@@ -85,12 +95,12 @@ public class DNSMessage {
     }
 
     /**
-     * same, but used when there's compression and we need to find the
-     * domain from earlier in the message.
-     * This method should make a ByteArrayInputStream that starts at the specified byte
-     * and call the other version of this method
-     * @param firstByte offset
+     * Same as above, but used when there's compression ,and we need to find the
+     * domain from earlier in the message. Start reading from offset
+     *
+     * @param firstByte offset to begin reading from
      * @return string array of domain name split by the period
+     * @throws IOException if I/O error occurred while reading from byte stream
      */
     public String[] readDomainName(int firstByte) throws IOException {
 
@@ -100,10 +110,12 @@ public class DNSMessage {
     }
 
     /**
-     * build a response based on the request and the answers you intend to send back
+     * Build a response based on the request and the answers you intend to send back.
+     * Assigns necessary DNS message fields of response.
+     *
      * @param request request we receive
      * @param answers DNSRecords we pull from
-     * @return DNSMessage
+     * @return response
      */
     public static DNSMessage buildResponse(DNSMessage request, ArrayList<DNSRecord> answers) {
 
@@ -120,6 +132,7 @@ public class DNSMessage {
     /**
      * Gets the bytes to put in a packet and send back
      * @return byte array of a message
+     * @throws IOException if I/O error occurred while writing to byte stream
      */
     public byte[] toBytes() throws IOException {
 
@@ -146,10 +159,12 @@ public class DNSMessage {
     /**
      * If this is the first time we've seen this domain name in the packet,
      * write it using the DNS encoding (each segment of the domain prefixed with its length, 0 at the end),
-     * and add it to the hash map. Otherwise, write a back pointer to where the domain has been seen previously.
+     * and add it to the hash map. Otherwise, writes back a pointer to where the domain has been seen previously.
+     *
      * @param os output stream
      * @param domainLocations location in hashmap of domain names
      * @param domainPieces sections of a domain name
+     * @throws IOException if I/O error occurred while writing to byte stream
      */
     public static void writeDomainName(ByteArrayOutputStream os, HashMap<String,Integer> domainLocations, String[] domainPieces) throws IOException {
 
@@ -181,7 +196,8 @@ public class DNSMessage {
     }
 
     /**
-     * join the pieces of a domain name with dots ([ "utah", "edu"] -> "utah.edu" )
+     * Join the pieces of a domain name with dots ([ "utah", "edu"] -> "utah.edu" )
+     *
      * @param pieces sections of a domain name
      * @return domain name with .
      */
@@ -192,6 +208,10 @@ public class DNSMessage {
         return  String.join(".", pieces);
 
     }
+
+    /**
+     *GETTERS
+     */
     public DNSHeader getHeader_() {
         return header_;
     }

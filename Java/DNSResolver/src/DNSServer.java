@@ -10,6 +10,12 @@ public class DNSServer {
     private static final int googlePort_ = 53;
     private static final String googleHostName_ = "8.8.8.8";
 
+    /**
+     * Constructor initializing a DNS server
+     *
+     * @param cache to store DNS question and record as key value pair
+     * @param serverPort ephemeral port to listen in on
+     */
     private DNSServer ( DNSCache cache, int serverPort ) {
         cache_ = cache;
 
@@ -31,6 +37,12 @@ public class DNSServer {
 
     }
 
+    /**
+     * Starts server to listen in to incoming requests
+     *
+     * @param server DNS server object
+     * @throws IOException if error in I/O while reading in from bytes stream
+     */
     private static void start( DNSServer server ) throws IOException {
 
         //Datagram packet to store incoming requests
@@ -80,6 +92,16 @@ public class DNSServer {
 
     }
 
+    /**
+     * Forwards packet from Google and receives DNS query response from Google
+     *
+     * @param socket server Socket
+     * @param buffer byte stream we are reading in
+     * @param packet Datagram pack used to send to Google
+     * @param googleAddress Inet address of Google
+     * @return Datagram packet received from Google
+     * @throws IOException if I/O error occurs reading or writing to byte stream
+     */
     private DatagramPacket fetchDataFromGoogle( DatagramSocket socket, byte[] buffer, DatagramPacket packet,  InetAddress googleAddress ) throws IOException {
 
         //Initialize a datagram packet and send to google
@@ -94,6 +116,14 @@ public class DNSServer {
         return googlePacket;
     }
 
+    /**
+     * Builds and sends a response to the client
+     *
+     * @param message DNS message to transform to response
+     * @param socket server socket
+     * @param requestPacket Datagram packet storing request
+     * @throws IOException if I/O error occurs while writing out to byte stream
+     */
     private void respondToClient( DNSMessage message, DatagramSocket socket, DatagramPacket requestPacket ) throws IOException {
 
         //Build response and send to client
@@ -103,6 +133,14 @@ public class DNSServer {
         socket.send(responsePacket);
     }
 
+    /**
+     * Handles invalid DNS query. Forwards Googles error response message
+     *
+     * @param googleResponse Google's response error message
+     * @param requestPacket Datagram packet storing invalid DNS query
+     * @param socket server socket
+     * @throws IOException if I/O error occurs while reading or writing to byte stream
+     */
     private void handleError(DNSMessage googleResponse, DatagramPacket requestPacket, DatagramSocket socket ) throws IOException {
 
         byte[] errorMessage = googleResponse.toBytes();
@@ -110,6 +148,14 @@ public class DNSServer {
         socket.send(errorPacket);
     }
 
+    /**
+     * Forwards Google's response to the client
+     *
+     * @param googleMessage message received Google
+     * @param requestPacket DatagramPacket storing Google's response
+     * @param socket server socket
+     * @throws IOException if I/O error occurred writing out to byte stream
+     */
     private void sendGoogleResponseToClient(DNSMessage googleMessage, DatagramPacket requestPacket, DatagramSocket socket) throws IOException {
 
         //Build response and send to client

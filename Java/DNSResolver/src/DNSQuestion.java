@@ -15,12 +15,12 @@ public class DNSQuestion {
 
 
     /**
-     * read a question from the input stream
-     * Due to compression,
-     * you may have to ask the DNSMessage containing this question to read some of the fields.
+     * Reads question from input stream and parses to store fields of DNS question
+     *
      * @param inputStream stream to update reading in message
      * @param message message to decode
      * @return question object with filled in fields
+     * @throws IOException if I/O error occurred while reading from byte stream
      */
     public static DNSQuestion decodeQuestion(InputStream inputStream, DNSMessage message) throws IOException {
 
@@ -35,10 +35,12 @@ public class DNSQuestion {
 
 
     /**
-     * Write the question bytes which will be sent to the client.
-     * The hash map is used for us to compress the message, see the DNSMessage class below.
+     * Write the member fields of DNS question in bytes which will be sent to the client.
+     * The hash map is used for us to compress the message.
+     *
      * @param outputStream stream to write out bytes
      * @param domainNameLocations hash map of domain names with their locations. Local cache
+     * @throws IOException if I/O error occurred while writing to byte stream
      */
     public void writeBytes(ByteArrayOutputStream outputStream, HashMap<String,Integer> domainNameLocations) throws IOException {
 

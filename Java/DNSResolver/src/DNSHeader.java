@@ -12,10 +12,12 @@ public class DNSHeader {
 
 
     /**
-     * read the header from an input stream
-     * parses header information and stores each part
+     * Read the header from an input stream
+     * parses header information and stores each member field
+     *
      * @param inputStream inputStream
-     * @return DNSHeader
+     * @return DNSHeader object with filled in member fields
+     * @throws IOException if I/O error occurred while reading from byte stream
      */
     public static DNSHeader decodeHeader(InputStream inputStream) throws IOException {
 
@@ -35,6 +37,7 @@ public class DNSHeader {
 
     /**
      * This will create the header for the response. It will copy some fields from the request
+     *
      * @param request coming in information
      * @param response information we are sending out
      * @return response header to send out
@@ -54,9 +57,10 @@ public class DNSHeader {
     }
 
     /**
-     * encode the header to bytes to be sent back to the client.
-     * The OutputStream interface has methods to write a single byte or an array of bytes.
+     * Encode the header to bytes to be sent back to the client.
+     *
      * @param outputStream output stream
+     * @throws IOException if I/O error occurred while writing to byte stream
      */
     public void writeBytes(OutputStream outputStream) throws IOException {
 
