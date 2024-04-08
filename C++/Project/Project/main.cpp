@@ -4,9 +4,9 @@
 * \date 01-16-2024
 */
 
+
 #include "cmdline.hpp"
 #include "parse.hpp"
-#include <iostream>
 
 
 int main( int argc, char **argv ) {

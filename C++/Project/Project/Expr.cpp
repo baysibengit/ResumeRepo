@@ -1,6 +1,6 @@
 /**
 * \file Expr.cpp
-* \brief contains expression class  and child class implementations as well as testing
+* \brief contains expression class  and child class implementations
         Expression class where we decide the grammar and how the different child classes
         interact with each other. Child classes are Num, Add, Variable, Mult, let .
 * \author Ben Baysinger
@@ -8,7 +8,8 @@
 
 
 #include "Expr.hpp"
-#include "parse.hpp"
+#include "Val.hpp"
+#include "Env.hpp"
 
 
 
@@ -39,7 +40,7 @@ std::string Expr:: to_stringPP(){
 * \brief constructor to make a number expression
 * \param val  number value to represented within number expression
 */
-Num::Num( int val ) {
+NumExpr::NumExpr( int val ) {
     this->val = val;
 }
 
@@ -48,9 +49,9 @@ Num::Num( int val ) {
 * \param comp expression to compare against this
 * \return true if param expression is equal to this
 */
-bool Num::equals(Expr *comp) {
+bool NumExpr::equals(PTR(Expr) comp) {
 
-    Num* numPtr = dynamic_cast<Num*>(comp);
+    PTR(NumExpr) numPtr = CAST(NumExpr)(comp);
     if ( numPtr == nullptr ) {
         return false;
     }
@@ -61,18 +62,11 @@ bool Num::equals(Expr *comp) {
 
 /**
 * \brief returns integer value of number expression
-* \return integer value of number expression
+* \param env environment object unused
+* \return Val  object with integer this->val  of number expression
 */
-int Num::interp() {
-    return this->val;
-}
-
-/**
-* \brief boolean that returns true if expression has variable
-* \return recursive call comparing lhs and rhs. True if expressions are equal false if not.
-*/
-bool Num::has_variable() {
-    return false;
+PTR(Val) NumExpr::interp(PTR(Env) env) {
+    return NEW(NumVal)(this->val);
 }
 
 /**
@@ -81,15 +75,15 @@ bool Num::has_variable() {
 * \param expr unused
 * \return this
 */
-Expr* Num::subst(std::string valToSub, Expr *expr) {
-    return this;
+PTR(Expr) NumExpr::subst(std::string valToSub, PTR(Expr) expr) {
+    return THIS;
 }
 
 /**
 * \brief converts num expression to string
 * \param ostream used to convert integer to string
 */
-void Num::print( std::ostream &ostream){
+void NumExpr::print( std::ostream &ostream){
     ostream<<std::to_string(val);
 }
 
@@ -97,7 +91,7 @@ void Num::print( std::ostream &ostream){
 * \brief converts num expression to string
 * \param ostream used to convert integer to string
 */
-void Num::pretty_print( std::ostream  &ostream){
+void NumExpr::pretty_print( std::ostream  &ostream){
     ostream<<std::to_string(val);
 }
 
@@ -106,9 +100,9 @@ void Num::pretty_print( std::ostream  &ostream){
 * \param ostream used to convert integer to string
 * \param  precedence unused
 * \param parentHasParen unused
-* \param spaceCounter unused
+* \param caller_pos unused
 */
-void Num::pretty_print_at(std::ostream  &ostream, precedence_t precedence, bool parentHasParen, std::streampos spaceCounter) {
+void NumExpr::pretty_print_at(std::ostream  &ostream, precedence_t precedence, bool parentHasParen, std::streampos &caller_pos) {
     ostream<<std::to_string(val);
 }
 
@@ -120,7 +114,7 @@ void Num::pretty_print_at(std::ostream  &ostream, precedence_t precedence, bool 
 * \param lhs expression of add expression
 * \param rhs expression of add expression
 */
-Add::Add(Expr *lhs, Expr *rhs) {
+AddExpr::AddExpr(PTR(Expr) lhs, PTR(Expr) rhs) {
     this->lhs = lhs;
     this->rhs = rhs;
 }
@@ -130,9 +124,9 @@ Add::Add(Expr *lhs, Expr *rhs) {
 * \param comp expression to compare against this
 * \return recursive call comparing lhs and rhs. True if expressions are equal false if not.
 */
-bool Add::equals ( Expr *comp ) {
+bool AddExpr::equals ( PTR(Expr) comp ) {
 
-    Add* addPtr = dynamic_cast<Add*>(comp);
+    PTR(AddExpr) addPtr = CAST(AddExpr)(comp);
     if ( addPtr == nullptr ) {
         return false;
     }
@@ -143,18 +137,15 @@ bool Add::equals ( Expr *comp ) {
 
 /**
 * \brief gives add operation result of add expression
-* \return int result of add expression by recursive call comparing lhs and rhs to navigate down to a num expression
+* \param env check if environment is null, if so create an empty environment object 
+* \return Val object by recursive call on lhs and rhs to navigate down to a num expression and adding those two values together
 */
-int Add::interp() {
-    return this->lhs->interp() + this->rhs->interp();
-}
-
-/**
-* \brief bool returns true if add expression contains a variable
-* \return recursive call to lhs and rhs. True if either side of expression contains a variable
-*/
-bool Add::has_variable() {
-    return this->lhs->has_variable() || this->rhs->has_variable();
+PTR(Val) AddExpr::interp(PTR(Env) env) {
+    
+    if(env == nullptr){
+        env = Env::empty;
+    }
+    return lhs->interp(env)->add_to(rhs->interp(env));
 }
 
 /**
@@ -163,9 +154,9 @@ bool Add::has_variable() {
 * \param expr expression to place in this expression valToSub
 * \return recursive call to lhs and rhs to navigate to position of valToSub
 */
-Expr* Add::subst(std::string valToSub, Expr *expr) {
+PTR(Expr) AddExpr::subst(std::string valToSub, PTR(Expr) expr) {
 
-    return new Add(this->lhs->subst(valToSub,expr), this->rhs->subst(valToSub,expr)) ;
+    return NEW(AddExpr)(this->lhs->subst(valToSub,expr), this->rhs->subst(valToSub,expr)) ;
 }
 
 /**
@@ -173,7 +164,7 @@ Expr* Add::subst(std::string valToSub, Expr *expr) {
  * surrounds whole expression in parenthesis, no space between expressions and prefix
 * \param ostream used to convert add expression to string
 */
-void Add::print( std::ostream &ostream){
+void AddExpr::print( std::ostream &ostream){
 
     ostream << "(";
     this->lhs->print(ostream);
@@ -183,11 +174,11 @@ void Add::print( std::ostream &ostream){
 }
 
 /**
-* \brief driver function for recursion call that takes in a enum precidence of caller
+* \brief driver function for recursion call that takes in ostream
 * \param ostream used to convert add expression  to string
 */
-void Add::pretty_print( std::ostream  &ostream){
-    std::streampos pos = ostream.tellp();
+void AddExpr::pretty_print( std::ostream  &ostream){
+    std::streampos pos = 0;
 
     pretty_print_at(ostream, prec_add, false, pos);
 }
@@ -198,16 +189,16 @@ void Add::pretty_print( std::ostream  &ostream){
 * \param ostream used to convert add expression  to string
 * \param precedence precedence of the caller, will be prec_add
 * \param parentHasParen boolean signifying if parent caller is surrounded by parenthesis
-* \param spaceCounter streampos tracking spacing preceding a _let variable printout
+* \param caller_pos streampos reference to position of caller
 */
-void Add::pretty_print_at(std::ostream &ostream, precedence_t precedence, bool parentHasParen, std::streampos spaceCounter) {
+void AddExpr::pretty_print_at(std::ostream &ostream, precedence_t precedence, bool parentHasParen, std::streampos &caller_pos) {
 
     if(precedence > prec_add){
         ostream << "(";
     }
-    this->lhs->pretty_print_at(ostream, static_cast<precedence_t>(prec_add + 1), parentHasParen, spaceCounter);
+    this->lhs->pretty_print_at(ostream, static_cast<precedence_t>(prec_add + 1), parentHasParen, caller_pos);
     ostream<< " + ";
-    this->rhs->pretty_print_at(ostream, prec_none, parentHasParen, spaceCounter);
+    this->rhs->pretty_print_at(ostream, prec_none, parentHasParen, caller_pos);
 
     if(precedence > prec_add){
         ostream << ")";
@@ -221,7 +212,7 @@ void Add::pretty_print_at(std::ostream &ostream, precedence_t precedence, bool p
 * \param lhs expression of multiplication expression
 * \param rhs expression of multiplication expression
 */
-Mult::Mult( Expr *lhs, Expr *rhs ) {
+MultExpr::MultExpr( PTR(Expr) lhs, PTR(Expr) rhs ) {
     this->lhs = lhs;
     this->rhs = rhs;
 }
@@ -231,8 +222,8 @@ Mult::Mult( Expr *lhs, Expr *rhs ) {
 * \param comp expression to compare against this
 * \return recursive call comparing lhs and rhs. True if expressions are equal false if not.
 */
-bool Mult::equals(Expr *comp) {
-    Mult* multPtr = dynamic_cast<Mult*>(comp);
+bool MultExpr::equals(PTR(Expr) comp) {
+    PTR(MultExpr) multPtr = CAST(MultExpr)(comp);
     if ( multPtr == nullptr ) {
         return false;
     }
@@ -243,18 +234,15 @@ bool Mult::equals(Expr *comp) {
 
 /**
 * \brief gives multiplication operation result of multiplication expression
-* \return int result of multiplication expression by recursive call comparing lhs and rhs to navigate down to a num expression
+* \param env check if environment is null, if so create an empty environment object
+* \return Val object by recursive call on lhs and rhs to navigate down to a num expression and mutliplying those two values together
 */
-int Mult::interp() {
-    return this->lhs->interp() * this->rhs->interp();
-}
-
-/**
-* \brief bool returns true if multiplication expression contains a variable
-* \return recursive call to lhs and rhs. True if either side of expression contains a variable
-*/
-bool Mult::has_variable() {
-    return this->lhs->has_variable() || this->rhs->has_variable();
+PTR(Val) MultExpr::interp(PTR(Env) env) {
+    
+    if(env == nullptr){
+        env = Env::empty;
+    }
+    return lhs->interp(env)->mult_with(rhs->interp(env));
 }
 
 /**
@@ -263,9 +251,9 @@ bool Mult::has_variable() {
 * \param expr expression to place in this expression valToSub
 * \return recursive call to lhs and rhs to navigate to position of valToSub
 */
-Expr* Mult::subst(std::string valToSub, Expr *expr) {
+PTR(Expr) MultExpr::subst(std::string valToSub, PTR(Expr) expr) {
 
-    return new Mult(this->lhs->subst(valToSub,expr), this->rhs->subst(valToSub,expr)) ;
+    return NEW(MultExpr)(this->lhs->subst(valToSub,expr), this->rhs->subst(valToSub,expr)) ;
 }
 
 /**
@@ -273,7 +261,7 @@ Expr* Mult::subst(std::string valToSub, Expr *expr) {
  * surrounds whole expression in parenthesis, no space between expressions and prefix
 * \param ostream used to convert multiplication expression to string
 */
-void Mult::print( std::ostream &ostream){
+void MultExpr::print( std::ostream &ostream){
     ostream << "(";
     this->lhs->print(ostream);
     ostream<< "*";
@@ -282,13 +270,13 @@ void Mult::print( std::ostream &ostream){
 }
 
 /**
-* \brief driver function for recursion call that takes in a enum precedence of caller
-* \param ostream used to convert add expression  to string
+* \brief driver function for recursion call that takes in ostream
+* \param ostream used to convert mult expression  to string
 */
-void Mult::pretty_print( std::ostream  &ostream){
-    std::streampos pos = ostream.tellp();
+void MultExpr::pretty_print( std::ostream  &ostream){
+    std::streampos pos = 0;
 
-    pretty_print_at(ostream, prec_mult, false, pos);
+    pretty_print_at(ostream, prec_mult, false, pos );
 }
 
 /**
@@ -297,20 +285,19 @@ void Mult::pretty_print( std::ostream  &ostream){
 * \param ostream used to convert multiplication expression  to string
 * \param precedence precedence of the caller, will be prec_mult
 * \param parentHasParen boolean signifying if parent caller is surrounded by parenthesis
-* \param spaceCounter streampos tracking spacing preceding a _let variable printout
+* \param caller_pos streampos reference to position of caller
 */
-void Mult::pretty_print_at(std::ostream &ostream, precedence_t precedence, bool parentHasParen, std::streampos spaceCounter) {
+void MultExpr::pretty_print_at(std::ostream &ostream, precedence_t precedence, bool parentHasParen, std::streampos &caller_pos) {
 
 
     if(precedence > prec_mult){
         parentHasParen = true;
         ostream << "(";
     }
-    this->lhs->pretty_print_at(ostream, static_cast<precedence_t>(prec_mult + 1), parentHasParen, spaceCounter);
+    this->lhs->pretty_print_at(ostream, static_cast<precedence_t>(prec_mult + 1), parentHasParen, caller_pos);
     ostream<< " * ";
-    
-    
-    this->rhs->pretty_print_at(ostream, prec_mult, parentHasParen, spaceCounter);
+
+    this->rhs->pretty_print_at(ostream, prec_mult, parentHasParen, caller_pos);
 
     if(precedence > prec_mult){
         ostream << ")";
@@ -324,7 +311,7 @@ void Mult::pretty_print_at(std::ostream &ostream, precedence_t precedence, bool 
 * \brief constructor to make a variable expression
 * \param value  string value to represented within variable expression
 */
-Variable::Variable(std::string value) {
+VarExpr::VarExpr(std::string value) {
     this->value = value;
 }
 
@@ -333,30 +320,26 @@ Variable::Variable(std::string value) {
 * \param comp expression to compare against this.
 * \return recursive call comparing lhs and rhs. True if variable's value are equal false if not.
 */
-bool Variable::equals(Expr *comp) {
-    Variable* varPtr = dynamic_cast<Variable*>(comp);
+bool VarExpr::equals(PTR(Expr) comp) {
+    PTR(VarExpr) varPtr = CAST(VarExpr)(comp);
     if ( varPtr == nullptr ) {
         return false;
     }
-    else {
-        return varPtr->value == this->value;
+
+    return varPtr->value == this->value;
+}
+
+/**
+* \brief Val object resutl from lookup 
+* \param env check if environment is null, if so create an empty environment object
+* \return result of looking up variable from 'env' dictionary
+*/
+PTR(Val) VarExpr::interp(PTR(Env) env) {
+    
+    if(env == nullptr){
+        env = Env::empty;
     }
-}
-
-/**
-* \brief throws error because variable expression do not have an integer result
-* \return runtime error because variable has no value
-*/
-int Variable::interp() {
-    throw std::runtime_error("Variable has no value");
-}
-
-/**
-* \brief boolean that returns true if variable expression contains a variable
-* \return true always because variable expression always contains variable
-*/
-bool Variable::has_variable() {
-    return true;
+    return env->lookup(this->value);
 }
 
 /**
@@ -365,19 +348,19 @@ bool Variable::has_variable() {
 * \param expr expression to place in this expression valToSub
 * \return this if valToSub is not value withing expression, if it is return new expression with expr in place of valToSub
 */
-Expr* Variable::subst(std::string valToSub, Expr *expr) {
+PTR(Expr) VarExpr::subst(std::string valToSub, PTR(Expr) expr) {
 
     if ( this->value == valToSub ){
         return expr;
     }
-    return this;
+    return THIS;
 }
 
 /**
 * \brief variable expression to string
 * \param ostream used to send out value which is already a string
 */
-void Variable::print( std::ostream &ostream){
+void VarExpr::print( std::ostream &ostream){
 
     ostream<< this->value;
 
@@ -387,7 +370,7 @@ void Variable::print( std::ostream &ostream){
 * \brief variable expression to string
 * \param ostream used to send out value which is already a string
 */
-void Variable::pretty_print( std::ostream  &ostream){
+void VarExpr::pretty_print( std::ostream  &ostream){
     ostream<< this->value;
 }
 
@@ -396,21 +379,21 @@ void Variable::pretty_print( std::ostream  &ostream){
 * \param ostream used to send out value which is already a string
 * \param  precedence unused
 * \param parentHasParen unused
-* \param spaceCounter unused
+* \param caller_pos unused
 */
-void Variable::pretty_print_at(std::ostream &ostream, precedence_t precedence, bool parentHasParen, std::streampos spaceCounter) {
+void VarExpr::pretty_print_at(std::ostream &ostream, precedence_t precedence, bool parentHasParen, std::streampos &caller_pos) {
     ostream<< this->value;
 }
 
 //**********************LET CLASS IMPLEMENTATIONS ***********************************
 
 /**
-* \brief constructor to make an let expression
+* \brief constructor to make a let expression
 * \param var string variable to be replaced in the body
 * \param replacement expression to be swapped for var in the exprToSub
 * \param exprToSub expression containing var to be substituted by replacement
 */
-LetExpr::LetExpr(std::string var, Expr *replacement, Expr *exprToSub) {
+LetExpr::LetExpr(std::string var, PTR(Expr) replacement, PTR(Expr) exprToSub) {
 
     this->lhs = var;
     this->rhs = replacement;
@@ -422,8 +405,8 @@ LetExpr::LetExpr(std::string var, Expr *replacement, Expr *exprToSub) {
 * \param comp expression to compare against this
 * \return recursive call comparing rhs and body. True if expressions are equal false if not.
 */
-bool LetExpr::equals(Expr *comp) {
-    LetExpr* letPtr = dynamic_cast<LetExpr*>(comp);
+bool LetExpr::equals(PTR(Expr) comp) {
+    PTR(LetExpr) letPtr = CAST(LetExpr)(comp);
     if ( letPtr == nullptr ) {
         return false;
     }
@@ -435,20 +418,19 @@ bool LetExpr::equals(Expr *comp) {
 
 /**
 * \brief gives let expression result of body expression after substitution of rhs
-* \return int result of let expression by recursive call comparing rhs and body to navigate down to a num expression
+* \param env check if environment is null, if so create an empty environment object
+* \return Val object result of let expression by recursive call on  rhs and body to navigate down to a num expression
+ *Checks env dictionary for binded lhs and substitutes that variable in the body *
 */
-int LetExpr::interp() {
+PTR(Val) LetExpr::interp(PTR(Env) env) {
+    
+    if(env == nullptr){
+        env = Env::empty;
+    }
 
-    Expr* newExpr = this->body->subst(this->lhs, this->rhs);
-    return newExpr->interp();
-}
-
-/**
-* \brief bool returns true if let expression contains a variable
-* \return recursive call to rhs and body. True if either field of expression contains a variable
-*/
-bool LetExpr::has_variable() {
-    return this->rhs->has_variable() || this->body->has_variable();
+        PTR(Val) rhs_val = rhs->interp(env);
+        PTR(Env) new_env = NEW(ExtendedEnv)(lhs, rhs_val, env);
+        return body->interp(new_env);
 }
 
 /**
@@ -457,12 +439,12 @@ bool LetExpr::has_variable() {
 * \param expr expression to place in this expression valToSub
 * \return new expression from body after substitution.  If lhs equals valToSub recursion call only on rhs, else call on rhs and body
 */
-Expr* LetExpr::subst(std::string valToSub, Expr *expr) {
+PTR(Expr) LetExpr::subst(std::string valToSub, PTR(Expr) expr) {
 
     if ( valToSub == this->lhs ){
-        return new LetExpr(this->lhs, this->rhs->subst(valToSub, expr), this->body);
+        return NEW(LetExpr)(this->lhs, this->rhs->subst(valToSub, expr), this->body);
     }
-    return new LetExpr(this->lhs, this->rhs->subst(valToSub, expr), this->body->subst(valToSub, expr));
+    return NEW(LetExpr)(this->lhs, this->rhs->subst(valToSub, expr), this->body->subst(valToSub, expr));
 }
 
 /**
@@ -482,12 +464,12 @@ void LetExpr::print( std::ostream &ostream){
 }
 
 /**
-* \brief driver function for recursion call that takes in a enum precedence of caller
-* \param ostream used to convert add expression  to string
+* \brief driver function for recursion call that takes in ostream
+* \param ostream used to convert let expression  to string
 */
 void LetExpr::pretty_print( std::ostream  &ostream){
 
-    std::streampos pos = ostream.tellp();
+    std::streampos pos = 0;
     pretty_print_at(ostream, prec_none, false, pos);
 }
 
@@ -497,481 +479,527 @@ void LetExpr::pretty_print( std::ostream  &ostream){
 * \param ostream used to convert let expression  to string
 * \param precedence precedence of the caller, will be prec_none
 * \param parentHasParen boolean signifying if parent caller is surrounded by parenthesis
-* \param spaceCounter streampos tracking spacing preceding a _let variable printout
+* \param caller_pos streampos reference to position of caller
 */
-void LetExpr::pretty_print_at(std::ostream &ostream, precedence_t precedence, bool parentHasParen, std::streampos spaceCounter ) {
+void LetExpr::pretty_print_at(std::ostream & ostream, precedence_t precedence, bool parentHasParen, std::streampos & caller_pos ) {
 
     if(!parentHasParen && precedence != prec_none){
         ostream << "(";
     }
 
-    std::streampos letPosition  = ostream.tellp();
+    std::streampos initial_pos = ostream.tellp();
+    std::string kw_pos = std::string( initial_pos - caller_pos, ' ' );
 
     ostream << "_let "<< this->lhs<< " = ";
-    this->rhs->pretty_print_at(ostream, prec_none, parentHasParen, spaceCounter);
+    this->rhs->pretty_print_at(ostream, prec_none, parentHasParen, caller_pos);
     ostream<< "\n";
-    std::streampos newLinePos = ostream.tellp();
+    caller_pos = ostream.tellp();
 
-    //Print spaces to match up _in with _let on new line
-    for ( int i = 0; i < letPosition - spaceCounter; i++ ){
-        ostream << ' ';
-    }
+    ostream << kw_pos << "_in  ";
 
-    ostream << "_in  ";
-
-    this->body->pretty_print_at(ostream, prec_none, parentHasParen, newLinePos);
+    this->body->pretty_print_at(ostream, prec_none, parentHasParen, caller_pos);
     if(!parentHasParen && precedence != prec_none){
         ostream << ")";
     }
 }
 
 
-//**********************CATCH TESTING **************************************
+//********************** IFEXPR CLASS IMPLEMENTATIONS ***********************************
 
-TEST_CASE("Num Class")
-{
-    SECTION("Equals") {
+/**
+* \brief constructor to make an if expression
+* \param test_part conditional expression to determine which of the following expression to use
+* \param then_part if test_part condition is true use this expression
+* \param else_part if test_part condition is false use this expression
+*/
+IfExpr::IfExpr( PTR(Expr) test_part, PTR(Expr) then_part, PTR(Expr) else_part ){
 
-        CHECK((new Num(1))->equals(new Variable("x")) == false);
-        CHECK((new Num(1))->equals(new Num(2)) == false);
-        //Zero check
-        CHECK((new Num(0))->equals(new Num(0)) == true);
-        //Negative check
-        CHECK((new Num(-2))->equals(new Num(-2)) == true);
-        //Max and min check
-        CHECK((new Num(INT16_MAX))->equals(new Num(INT16_MAX)) == true);
-        CHECK((new Num(INT16_MIN))->equals(new Num(INT16_MIN)) == true);
-        //Repeats
-        CHECK((new Num(777))->equals(new Num(777)) == true);
+    this->test_part = test_part;
+    this->then_part = then_part;
+    this->else_part = else_part;
+}
+
+/**
+* \brief compares all fields of an if expression to 'this' using recursion
+* \param comp expression to compare against this
+* \return recursive call comparing each field of if expression. True if expressions are equal false if not.
+*/
+bool IfExpr::equals(PTR(Expr)comp){
+
+    PTR(IfExpr) ifPtr = CAST(IfExpr)(comp);
+    if ( ifPtr == nullptr ) {
+        return false;
     }
-    SECTION("Interp"){
 
-        CHECK((new Num(4))->interp() == 4);
-        CHECK((new Num(8))->interp() != 6);
-        //Checking interp after a sub change
-        CHECK((new Variable("y"))->subst("y", new Num(8))->interp() == 8);
-        CHECK_THROWS_WITH((new Variable("x"))->subst("yx", new Num(3))->interp(),  "Variable has no value");
-        CHECK_THROWS_WITH((new Add(new Num(2), new Variable("4")))->interp(), "Variable has no value");
+    return ifPtr->test_part->equals(this->test_part) && ifPtr->then_part->equals(this->then_part) && ifPtr-> else_part->equals(this->else_part);
+}
 
-    }
-    SECTION("HasVariable") {
+/**
+* \brief gives result of expression determined by test_part conditional expression
+* \param env check if environment is null, if so create an empty environment object
+* \return Val object result of expression by recursive call interping expression until navigating to VarExpr or NumExpr
+*/
+PTR(Val) IfExpr::interp(PTR(Env) env) {
 
-        CHECK((new Num(7))->has_variable() == false);
-        CHECK((new Num(5))->has_variable() != true );
+    if (test_part->interp(env)->is_true())
+        return then_part->interp(env);
 
-    }
-    SECTION("Substitution") {
-
-        CHECK((new Num(7))->subst("x", new Variable("y"))->equals(new Num(7)));
-        //Sub change variable to num
-        CHECK((new Variable("x"))->subst("x", new Num(8))->equals(new Num(8)));
-    }
-    SECTION("Print ") {
-        CHECK( (new Num(10))->to_string() == "10" );
-        CHECK( (new Num (-11))->to_string() == "-11");
-        CHECK( (new Num (777))->to_string() == "777");
-        CHECK( (new Num (0))->to_string() == "0");
-        CHECK( (new Num (83))->to_string() != "72");
-    }
-    SECTION("Pretty Print") {
-        CHECK( (new Num(10))->to_stringPP() == "10" );
-        CHECK( (new Num (-11))->to_stringPP() == "-11");
-        CHECK( (new Num (777))->to_stringPP() == "777");
-        CHECK( (new Num (0))->to_stringPP() == "0");
-        CHECK( (new Num (83))->to_stringPP() != "72");
+    else
+    {
+        return else_part->interp(env);
     }
 }
 
-TEST_CASE("Add Class")
-{
-    SECTION("Equals") {
+/**
+* \brief function returns expression parameter substituted in place of parameter valToSub
+* \param valToSub variable value to substitute expression for
+* \param expr expression to place in this expression valToSub
+* \return this if valToSub is not value withing expression, if it is return new expression with expr in place of valToSub
+*/
+PTR(Expr) IfExpr::subst( std::string valToSub, PTR(Expr) expr ) {
 
-        CHECK((new Add(new Num(2), new Num(3)))->equals(new Add(new Num(2), new Num(3))) == true);
-        CHECK((new Add(new Num(2), new Num(3)))->equals(new Add(new Num(3), new Num(2))) == false);
-        //Add vs Multiplication check
-        CHECK((new Add(new Num(2), new Num(3)))->equals(new Mult(new Num(2), new Num(3))) == false);
-        //Add using Num and Var expression
-        CHECK((new Add(new Num(2), new Num(3)))->equals(new Add(new Variable("2"), new Variable("3"))) == false);
-        CHECK((new Add(new Variable("2"), new Variable("3")))->equals(new Add(new Variable("2"), new Variable("3"))) == true);
-    }
-    SECTION("Interp") {
-
-        CHECK((new Add(new Add(new Num(10), new Num(15)), new Add(new Num(20), new Num(20))))->interp() == 65);
-        //Exception thrown if variable contained
-        CHECK_THROWS_WITH((new Add(new Num(2), new Variable("4")))->interp(), "Variable has no value");
-        //Add with multiplication
-        CHECK((new Add(new Mult(new Num(2), new Num(4)), new Add(new Num(5), new Num(10))))->interp() == 23);
-        //Add negative numbers
-        CHECK((new Add(new Add(new Num(-5), new Num(15)), new Add(new Num(-15), new Num(23))))->interp() == 18);
-        //Add with substitute
-        CHECK((new Add((new Add(new Variable("x"), new Num(15)))->subst("x", new Num(8)), new Add(new Num(13), new Num(30))))->interp() == 66);
-    }
-    SECTION("HasVariable") {
-
-        CHECK((new Add(new Num(2), new Num(4)))->has_variable() == false);
-        //Has variable then substitutes
-        CHECK((new Add((new Add(new Variable("x"), new Num(15)))->subst("x", new Num(8)), new Add(new Num(13), new Num(30))))->has_variable() == false);
-        //Has variable then substitutes another variable
-        CHECK((new Add((new Add(new Variable("x"), new Num(15)))->subst("x", new Variable("y")), new Add(new Num(13), new Num(30))))->has_variable() == true);
-        CHECK((new Add((new Add(new Variable("x"), new Num(15)))->subst("x", new Add(new Num(7), new Variable("y"))), new Add(new Num(13), new Num(30))))->has_variable() == true);
-        //Has variable then substitutes it out
-        CHECK((new Add((new Add(new Variable("x"), new Num(15)))->subst("x", new Add(new Num(7), new Num(8))), new Add(new Num(13), new Num(30))))->has_variable() == false);
-    }
-    SECTION("Substitution") {
-
-        //Var with Num
-        CHECK((new Add(new Variable("x"), new Num(7)))->subst("x", new Num(9))->equals(new Add(new Num(9), new Num(7))) );
-        //Var with another var
-        CHECK((new Add(new Variable("x"), new Num(7)))->subst("x", new Variable("y"))->equals(new Add(new Variable("y"), new Num(7))) );
-        //Var with add expression
-        CHECK((new Add((new Add(new Variable("x"), new Num(15)))->subst("x", new Add(new Num(2), new Num(3))),new Add(new Num(13), new Num(30))))
-        ->equals(new Add(new Add(new Add(new Num(2), new Num(3)),new Num(15)),new Add(new Num(13), new Num(30)))));
-        //Var with multiplication expression within add
-        CHECK((new Add((new Mult(new Variable("x"), new Num(26)))->subst("x", new Add(new Num(7), new Num(8))),new Add(new Num(14), new Num(25))))
-        ->equals(new Add(new Mult(new Add(new Num(7), new Num(8)),new Num(26)),new Add(new Num(14), new Num(25)))));
-    }
-    SECTION("Print") {
-        CHECK( (new Add(new Num(1), new Add(new Num(2), new Num(3))))->to_string() == "(1+(2+3))" );
-        //Add with multiplication on right
-        CHECK( (new Add(new Num(2), new Mult(new Num(5), new Num(9))))->to_string() == "(2+(5*9))" );
-        //Add with multiplication on left
-        CHECK( (new Add(new Mult(new Num(3), new Num(9)), new Add(new Num(7), new Num(8))))->to_string() == "((3*9)+(7+8))" );
-        //Add with two adds
-        CHECK( (new Add(new Add(new Num(6), new Num(3)), new Add(new Num(1), new Num(4))))->to_string() == "((6+3)+(1+4))" );
-        //Add with two multiplications
-        CHECK( (new Add(new Mult(new Num(9), new Num(2)), new Mult(new Num(3), new Num(5))))->to_string() == "((9*2)+(3*5))" );
-        //Add with var
-        CHECK( (new Add(new Variable("x"), new Add(new Num(2), new Num(3))))->to_string() == "(x+(2+3))" );
-        //Add with num and var
-        CHECK( (new Add(new Num(1), new Variable("y")))->to_string() == "(1+y)" );
-        //Add with var and multiplication
-        CHECK( (new Add(new Variable("z"), new Mult(new Num(4), new Num(9))))->to_string() == "(z+(4*9))" );
-    }
-    SECTION("Pretty Print") {
-        //Add with num on left and add expression on right
-        CHECK( (new Add(new Num(1), new Add(new Num(2), new Num(3))))->to_stringPP() == "1 + 2 + 3" );
-        //Add with num on right and add expression on left
-        CHECK( (new Add( new Add(new Num(7), new Num(7)), new Num(6)))->to_stringPP() == "(7 + 7) + 6");
-        //Add with add expression on left and multiplication on right. Association to the right example
-        CHECK( (new Add( new Add(new Num(7), new Num(7)), new Mult(new Num(9), new Num(2))))->to_stringPP() == "(7 + 7) + 9 * 2");
-        //Add with multiplication expression on left and add on right. Grouped by precedence example
-        CHECK( (new Add( new Mult(new Num(3), new Num(5)), new Add(new Num(6), new Num(1))))->to_stringPP() == "3 * 5 + 6 + 1");
-        //Add with var in left and add expression on right.
-        CHECK( (new Add( new Variable("x"), new Add(new Num(4), new Num(4))))->to_stringPP() == "x + 4 + 4");
-        //Add with add expression on left and var on right
-        CHECK( (new Add( new Add(new Num(8), new Num(1)), new Variable("y")))->to_stringPP() == "(8 + 1) + y");
-        //Association to right example
-        CHECK( (new Add( new Num(1), new Mult(new Num(2), new Num(3))))->to_stringPP() == "1 + 2 * 3");
-        //Lakshay test
-        CHECK( (new Add(new Add(new Variable("x"), new Variable("y")), new Num(1)))->to_stringPP() == "(x + y) + 1" );
-        CHECK( (new Add(new Add(new Num(-4), new Num(3)), new Add(new Num(2), new Num(-1))) )->to_stringPP() == "(-4 + 3) + 2 + -1" );
-    }
-
+    return NEW(IfExpr)(this->test_part->subst(valToSub, expr), this->then_part->subst(valToSub,expr), this->else_part->subst(valToSub, expr)) ;
 }
 
-TEST_CASE("Multiplication Class")
-{
-    SECTION("Equals") {
+/**
+* \brief converts if expression to string using recursion to narrow down until var or num encountered
+ * surrounds whole expression in parenthesis, no space between expressions and prefixes
+* \param ostream used to convert if expression to string
+*/
+void IfExpr::print( std::ostream &ostream) {
 
-        CHECK((new Mult(new Num(2), new Num(3)))->equals(new Mult(new Num(2), new Num(3))) == true);
-        CHECK((new Mult(new Num(2), new Num(3)))->equals(new Mult(new Num(3), new Num(2))) == false);
-        //Multiplication expression vs Add check
-        CHECK((new Mult(new Num(2), new Num(3)))->equals(new Add(new Num(2), new Num(3))) == false);
-        //Multiplication expression using Num and Var expression
-        CHECK((new Mult(new Num(2), new Num(3)))->equals(new Mult(new Variable("2"), new Variable("3"))) == false);
-        CHECK((new Mult(new Variable("2"), new Variable("3")))->equals(new Mult(new Variable("2"), new Variable("3"))) == true);
+    ostream << "(_if ";
+    this->test_part->print(ostream);
+    ostream << " _then ";
+    this->then_part->print(ostream);
+    ostream << " _else ";
+    this->else_part->print(ostream);
+    ostream << ")";
+}
+
+/**
+* \brief driver function for recursion call that takes in ostream
+* \param ostream used to convert if expression  to string
+*/
+void IfExpr::pretty_print( std::ostream  &ostream) {
+    std::streampos pos = 0;
+    pretty_print_at(ostream, prec_none, false, pos);
+}
+
+/**
+* \brief converts let expression to string using recursion to narrow down until var or num encountered
+ * places parenthesis to adhere to association to the right and our precedence scale
+* \param ostream used to convert let expression  to string
+* \param precedence precedence of the caller, will be prec_none
+* \param parentHasParen boolean signifying if parent caller is surrounded by parenthesis
+* \param caller_pos streampos reference to position of caller
+*/
+void IfExpr::pretty_print_at(std::ostream  &ostream, precedence_t precedence, bool parentHasParen, std::streampos &caller_pos) {
+
+    if(precedence > prec_none) {
+        ostream << "(";
     }
-    SECTION("Interp") {
 
-        CHECK((new Mult(new Num(3), new Num(2)))->interp() == 6);
-        //Exception thrown if variable contained
-        CHECK_THROWS_WITH((new Mult(new Num(2), new Variable("4")))->interp(), "Variable has no value");
-        //Multiplication with add
-        CHECK((new Mult(new Add(new Num(2), new Num(4)), new Mult(new Num(5), new Num(10))))->interp() == 300);
-        //Multiplication negative numbers
-        CHECK((new Mult(new Mult(new Num(-5), new Num(15)), new Add(new Num(-15), new Num(23))))->interp() == -600);
-        //Multiplication with substitute
-        CHECK((new Mult((new Add(new Variable("x"), new Num(15)))->subst("x", new Num(8)), new Add(new Num(13), new Num(30))))->interp() == 989);
-    }
-    SECTION("HasVariable") {
+    std::streampos initial_pos = ostream.tellp();
+    std::string kw_pos = std::string( initial_pos - caller_pos, ' ' );
 
-        CHECK((new Mult(new Num(2), new Num(4)))->has_variable() == false);
-        //Has variable then substitutes
-        CHECK((new Mult((new Add(new Variable("x"), new Num(15)))->subst("x", new Num(8)), new Add(new Num(13), new Num(30))))->has_variable() == false);
-        //Has variable then substitutes another variable
-        CHECK((new Mult((new Add(new Variable("x"), new Num(15)))->subst("x", new Variable("y")), new Add(new Num(13), new Num(30))))->has_variable() == true);
-        CHECK((new Mult((new Add(new Variable("x"), new Num(15)))->subst("x", new Add(new Num(7), new Variable("y"))), new Add(new Num(13), new Num(30))))->has_variable() == true);
-        //Has variable then substitutes it out
-        CHECK((new Mult((new Add(new Variable("x"), new Num(15)))->subst("x", new Add(new Num(7), new Num(8))), new Add(new Num(13), new Num(30))))->has_variable() == false);
-    }
-    SECTION("Substitution") {
+    ostream << "_if   ";
+    this->test_part->pretty_print_at(ostream, prec_none, parentHasParen, caller_pos);
+    ostream << "\n";
 
-        //Var with Num
-        CHECK((new Mult(new Variable("x"), new Num(7)))->subst("x", new Num(9))->equals(new Mult(new Num(9), new Num(7))) );
-        //Var with another var
-        CHECK((new Mult(new Variable("x"), new Num(7)))->subst("x", new Variable("y"))->equals(new Mult(new Variable("y"), new Num(7))) );
-        //Var with add expression
-        CHECK((new Mult((new Add(new Variable("x"), new Num(15)))->subst("x", new Add(new Num(2), new Num(3))),new Add(new Num(13), new Num(30))))
-        ->equals(new Mult(new Add(new Add(new Num(2), new Num(3)),new Num(15)),new Add(new Num(13), new Num(30)))));
-        //Var with add expression within multiplication
-        CHECK((new Mult((new Add(new Variable("x"), new Num(26)))->subst("x", new Add(new Num(7), new Num(8))),new Add(new Num(14), new Num(25))))
-        ->equals(new Mult(new Add(new Add(new Num(7), new Num(8)),new Num(26)),new Add(new Num(14), new Num(25)))));
-    }
-    SECTION("Print") {
+    caller_pos = ostream.tellp();
 
-        CHECK( (new Mult(new Num(1), new Mult(new Num(2), new Num(3))))->to_string() == "(1*(2*3))" );
-        //Multiplication with add expression on right
-        CHECK( (new Mult(new Num(2), new Add(new Num(5), new Num(9))))->to_string() == "(2*(5+9))" );
-        //Multiplication with add expression on left
-        CHECK( (new Mult(new Add(new Num(3), new Num(9)), new Mult(new Num(7), new Num(8))))->to_string() == "((3+9)*(7*8))" );
-        //Multiplication with two multiplication expressions
-        CHECK( (new Mult(new Mult(new Num(6), new Num(3)), new Mult(new Num(1), new Num(4))))->to_string() == "((6*3)*(1*4))" );
-        //Multiplication with two add expressions
-        CHECK( (new Mult(new Add(new Num(9), new Num(2)), new Add(new Num(3), new Num(5))))->to_string() == "((9+2)*(3+5))" );
-        //Multiplication with var
-        CHECK( (new Mult(new Variable("x"), new Mult(new Num(2), new Num(3))))->to_string() == "(x*(2*3))" );
-        //Multiplication with num and var
-        CHECK( (new Mult(new Num(1), new Variable("y")))->to_string() == "(1*y)" );
-        //Multiplication with var and add expression
-        CHECK( (new Mult(new Variable("z"), new Add(new Num(4), new Num(9))))->to_string() == "(z*(4+9))" );
-    }
-    SECTION("Pretty Print") {
+    ostream << kw_pos << "_then ";
+    this->then_part->pretty_print_at(ostream, prec_none, parentHasParen, caller_pos);
+    ostream << "\n";
 
-        //Associating to right examples
-        CHECK((new Mult (new Num(2), new Mult (new Num(3), new Num(4))))->to_stringPP() == "2 * 3 * 4");
-        CHECK((new Mult (new Mult (new Num(2), new Num(3)), new Num(4)))->to_stringPP() == "(2 * 3) * 4");
-        //Multiplication with multiplication expression on left and add expression on right.
-        CHECK( (new Mult( new Mult(new Num(7), new Num(7)), new Add(new Num(9), new Num(2))))->to_stringPP() == "(7 * 7) * (9 + 2)");
-        //Multiplication with add expression on left and multiplication on right. Grouped by precedence example
-        CHECK( (new Mult( new Add(new Num(3), new Num(5)), new Mult(new Num(6), new Num(1))))->to_stringPP() == "(3 + 5) * 6 * 1");
-        //Multiplication with var in left and multiplication expression on right.
-        CHECK( (new Mult( new Variable("x"), new Mult(new Num(4), new Num(4))))->to_stringPP() == "x * 4 * 4");
-        //Multiplication with multiplication expression on left and var on right. Association to the right example
-        CHECK( (new Mult( new Mult(new Num(8), new Num(1)), new Variable("y")))->to_stringPP() == "(8 * 1) * y");
-        //Multiplication with a num on left and an add expression on the right
-        CHECK( (new Mult( new Num(1), new Add(new Num(2), new Num(3))))->to_stringPP() == "1 * (2 + 3)");
+    caller_pos = ostream.tellp();
+
+    ostream << kw_pos << "_else ";
+    this->else_part->pretty_print_at(ostream, prec_none, parentHasParen, caller_pos);
+
+    if(precedence > prec_none){
+        ostream << ")";
     }
 }
 
-TEST_CASE("Variable Class")
-{
-    SECTION("Equals") {
+//********************** BOOLEXPR CLASS IMPLEMENTATIONS *********************************
 
-        CHECK((new Variable("x"))->equals(new Variable("x")) == true);
-        CHECK((new Variable("x"))->equals(new Variable("y")) == false);
-        //Empty string check
-        CHECK((new Variable(""))->equals(new Variable("")) == true);
-        //Palindrome
-        CHECK((new Variable("racecar"))->equals(new Variable("racecar")) == true);
-        CHECK((new Variable("Racecar"))->equals(new Variable("racecar")) == false);
-        //Uppercase
-        CHECK((new Variable("CLANG"))->equals(new Variable("CLANG")) == true);
-        //Mixed case
-        CHECK((new Variable("HeLlO"))->equals(new Variable("HeLlO")) == true);
-        CHECK((new Variable("HeLlO"))->equals(new Variable("HeLLO")) == false);
-        }
-        SECTION("Interp") {
+/**
+* \brief constructor to make an if expression
+* \param boolean bool variable to determine type of bool expression
+*/
+BoolExpr::BoolExpr(bool boolean) {
+    this->boolean = boolean;
+}
 
-        CHECK_THROWS_WITH((new Variable("x"))->interp(), "Variable has no value");
-        //Checking interp after a sub
-        CHECK((new Variable("z"))->subst("z", new Num(56))->interp() == 56);
+/**
+* \brief compares all fields of an if expression to 'this' using recursion
+* \param comp expression to compare against this
+* \return true if boolean values equate to same condition on both expression objects
+*/
+bool BoolExpr::equals(PTR(Expr)comp) {
+    PTR(BoolExpr) boolPtr = CAST(BoolExpr)(comp);
+    if ( boolPtr == nullptr ) {
+        return false;
     }
-    SECTION("HasVariable") {
+    return boolPtr->boolean == this->boolean;
 
-        CHECK((new Variable("x"))->has_variable() == true);
-        //Doesn't have within number
-        CHECK((new Num(4))->has_variable() == false);
-        //Has within add
-        CHECK((new Add(new Num(5), new Variable("6")))->has_variable() == true);
-        //Doesn't have withing add
-        CHECK((new Add(new Num(5), new Num(6)))->has_variable() == false);
-        //Has within multiplication
-        CHECK((new Mult(new Num(25), new Variable("6")))->has_variable() == true);
-        //Doesn't have within multiplication
-        CHECK((new Mult(new Num(36), new Num(8)))->has_variable() == false);
+}
+
+/**
+* \brief gives back a BoolVal object with member bool
+* \param env check if environment is null, if so create an empty environment object
+* \return BoolVal object result of expression
+*/
+PTR(Val) BoolExpr::interp(PTR(Env) env) {
+    return NEW(BoolVal)(this->boolean);
+}
+
+/**
+* \brief function returns expression parameter substituted in place of parameter valToSub
+* \param valToSub variable value to substitute expression for
+* \param expr expression to place in this expression valToSub
+* \return this if valToSub is not value withing expression, if it is return new expression with expr in place of valToSub
+*/
+PTR(Expr) BoolExpr::subst( std::string valToSub, PTR(Expr) expr ) {
+    return THIS;
+}
+
+/**
+* \brief converts bool expression to string, prints out '_true' or 'false' depending upon boolean condition
+* \param ostream used to convert bool expression to string
+*/
+void BoolExpr::print( std::ostream &ostream) {
+
+    if (boolean) {
+        ostream<< "_true";
     }
-    SECTION("Substitution") {
-
-        CHECK( (new Variable("x"))->subst("x", new Add(new Variable("y"),new Num(7)))->equals(new Add(new Variable("y"),new Num(7))) );
-        //Sub within num
-        CHECK((new Num(4))->subst("x", new Num(8))->equals(new Num(4)));
-        //Sub within add
-        CHECK((new Add(new Num(5), new Variable("6")))->subst("6", new Add(new Num(6), new Num(0)))
-        ->equals(new Add(new Num(5), new Add(new Num(6), new Num(0)))));
-        //Sub within multiplication
-        CHECK((new Mult(new Num(4), new Variable("3")))->subst("3", new Mult(new Num(7), new Num(2)))
-        ->equals(new Mult(new Num(4), new Mult(new Num(7), new Num(2)))));
-    }
-    SECTION("Print") {
-
-        CHECK( (new Variable("x"))->to_string() == "x" );
-        CHECK( (new Variable("-y"))->to_string() == "-y" );
-        CHECK( (new Variable("777"))->to_string() == "777" );
-        CHECK( (new Variable("HeLlO"))->to_string() == "HeLlO" );
-        CHECK( (new Variable("RACECAR"))->to_string() == "RACECAR");
-    }
-    SECTION("Pretty Print") {
-
-        CHECK( (new Variable("x"))->to_stringPP() == "x" );
-        CHECK( (new Variable("-y"))->to_stringPP() == "-y" );
-        CHECK( (new Variable("777"))->to_stringPP() == "777" );
-        CHECK( (new Variable("HeLlO"))->to_stringPP() == "HeLlO" );
-        CHECK( (new Variable("RACECAR"))->to_stringPP() == "RACECAR");
+    else {
+        ostream<< "_false";
     }
 }
 
-TEST_CASE("LET CLASS")
-{
-    SECTION("Equals") {
+/**
+* \brief same as print function above
+* \param ostream used to convert bool expression  to string
+*/
+void BoolExpr::pretty_print( std::ostream  &ostream) {
 
-        //True check
-        CHECK((new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(6))))->equals
-        (new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(6)))) == true);
-        //False check
-        CHECK((new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(6))))->equals
-        (new LetExpr("x", new Num(5), new Add(new Variable("y"), new Num(6)))) == false);
+
+    if (boolean) {
+        ostream<< "_true"; //turnary operator
     }
-
-    SECTION("Interp") {
-
-        //Add expression
-        CHECK((new Mult(new Num(5), new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(1)))))->interp() == 30);
-        //Multiplication expression
-        CHECK((new Add( new Mult(new Num(5), new LetExpr("x", new Num(5), new Variable("x"))), new Num(1)))->interp() == 26);
-        //Nested in right argument of multiplication expression
-        CHECK ( (new Mult(new Mult(new Num (2), new LetExpr("x", new Num(5), new Add(new Variable("x") , new Num(1)) )), new Num(3)))->interp() == 36);
-        //Variable unchanged exception check
-        CHECK_THROWS_WITH ((new Add(new LetExpr("x", new Num(3), new LetExpr("y", new Num(3), new Add(new Variable("y"), new Num(2))) ), new Variable("x")))->interp(), "Variable has no value");
-        //Let in lhs of add
-        CHECK ( (new Add(new LetExpr("x", new Num(2), new Add(new Variable("x"), new Num(9))), new Num(4)))->interp() == 15);
-    }
-
-    SECTION("Has Variable ") {
-
-        //Variable contained in rhs
-        CHECK((new LetExpr("x", new Variable("x"), new Add(new Num(8), new Num(9))))->has_variable() == true);
-        //Variable contained in body
-        CHECK((new LetExpr("x", new Num(3), new Add(new Variable("x"), new Num(2))))->has_variable() == true);
-        //Not contained in rhs
-        CHECK((new LetExpr("y", new Num(6), new Add(new Variable("y"), new Num(4))))->has_variable() == true);
-        //Not contained in body
-        CHECK((new LetExpr("z", new Variable("z"), new Add(new Num(7), new Num(7))))->has_variable() == true);
-        //Not contained except for lhs false check
-        CHECK((new LetExpr("x", new Num(2), new Add(new Num(8), new Num(9))))->has_variable() == false);
-    }
-
-    SECTION("Substitution") {
-
-        //Dont sub x because lhs = valToSub
-        CHECK( (new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(5))))->subst("x", new Num(4))
-        ->equals( new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(5)))));
-        //Don't sub x because valToSub is not contained
-        CHECK( (new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(5))))->subst("y", new Num(4))
-        ->equals( new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(5)))));
-        //Sub if lhs == valToSub in rhs
-        CHECK( (new LetExpr("x", new Add(new Variable("x"), new Num(8)), new Add(new Variable("x"), new Num(3))))->subst("x", new Num(4))
-        ->equals(new LetExpr("x", new Add(new Num(4), new Num(8)), new Add(new Variable("x"), new Num(3)))) );
-        //Sub if lhs != valToSub when valToSub is contained in rhs
-        CHECK( (new LetExpr("x", new Add(new Variable("y"), new Num(8)), new Add(new Variable("x"), new Num(3))))->subst("y", new Num(4))
-        ->equals(new LetExpr("x", new Add(new Num(4), new Num(8)), new Add(new Variable("x"), new Num(3)))) );
-        //Sub if lhs != valToSub when valToSub is contained in body
-        CHECK( (new LetExpr("x", new Num(6), new Add(new Variable("x"), new Add(new Variable("y"), new Num(7)))))->subst("y", new Num(4))
-        ->equals(new LetExpr("x", new Num(6), new Add(new Variable("x"), new Add(new Num(4), new Num(7))))) );
-
-    }
-
-    SECTION("Print") {
-
-        //Single let
-        CHECK((new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(7))))
-        ->to_string() == "(_let x=5 _in (x+7))");
-        //Let with multiplication expression
-        CHECK((new LetExpr("x", new Num(9), new Mult(new Variable("x"), new Num(3))))
-        ->to_string() == "(_let x=9 _in (x*3))");
-        //Nested let
-        CHECK((new LetExpr("x", new Num(5), new Add(new LetExpr("y", new Num(3), new Add(new Variable("y"), new Num(2))), new Variable("x"))))
-        ->to_string() == "(_let x=5 _in ((_let y=3 _in (y+2))+x))");
-        //Triple nested let
-        CHECK((new LetExpr("x", new Num(5), new Add(new LetExpr("y", new Num(3), new LetExpr("y", new Num(2), new Add(new Variable("y"), new Num(5)))), new Variable("x"))))
-        ->to_string() == "(_let x=5 _in ((_let y=3 _in (_let y=2 _in (y+5)))+x))");
-        //Let nested with let in right hand side
-        CHECK( (new LetExpr("x", new LetExpr("y", new Num(7), new Add(new Variable("y"), new Num(6))), new Add(new Variable("x"), new Num(3))))
-        ->to_string() == "(_let x=(_let y=7 _in (y+6)) _in (x+3))");
-        
-        CHECK((new LetExpr("gfw", new Variable("iju"), new Add(new Num(-1811580510), new Variable("gfw"))))->to_string() == "(_let gfw=iju _in (-1811580510+gfw))");
-    }
-    SECTION("Pretty Print") {
-
-        //Let nested as right argument of parenthesized multiplication expression
-        CHECK ( (new Mult(new Mult(new Num (2), new LetExpr("x", new Num(5), new Add(new Variable("x") , new Num(1)) )), new Num(3)))->to_stringPP() == "(2 * _let x = 5\n"
-        "     _in  x + 1) * 3");
-        //Let nested to the left in add expression which is nested to the right within a multiplication expression
-        CHECK((new Mult(new Num(5), new Add(new LetExpr("x", new Num(5), new Variable("x")), new Num(1))))->to_stringPP() == "5 * ((_let x = 5\n"
-        "      _in  x) + 1)");
-        //Let in lhs of add
-        CHECK ( (new Add(new LetExpr("x", new Num(2), new Add(new Variable("x"), new Num(9))), new Num(4)))->to_stringPP() == "(_let x = 2\n"
-        " _in  x + 9) + 4");
-        //Let in lhs of multiplication expression
-        CHECK((new Mult(new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(8))), new Num(3)))->to_stringPP() == "(_let x = 5\n"
-        " _in  x + 8) * 3");
-        //Let nest as right argument of un-parenthesized multiplication expression
-        CHECK((new Add (new Mult(new Num(4), new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(1)))), new Num(9)))->to_stringPP() == "4 * (_let x = 5\n"
-        "     _in  x + 1) + 9");
-        //Let nested to the left within let that is nested to the left within add
-        CHECK ((new Add(new LetExpr("x", new Num(3), new LetExpr("y", new Num(3), new Add(new Variable("y"), new Num(2))) ), new Variable("x")))->to_stringPP() == "(_let x = 3\n"
-                                                                                                                                                                   " _in  _let y = 3\n"
-                                                                                                                                                                   "      _in  y + 2) + x");
-        //Let nested in lhs of Add expression nested within body of let expression
-        CHECK((new LetExpr("x", new Num(5), new Add(new LetExpr("y" , new Num(3), new Add(new Variable("y"), new Num(2))), new Variable("x"))))
-        ->to_stringPP() == "_let x = 5\n"
-                           "_in  (_let y = 3\n"
-                           "      _in  y + 2) + x");
-        //Triple nested let
-        CHECK( ( new LetExpr( "x", new Num(5),
-                              new Add( new LetExpr( "y", new Num(3),
-                                                    new Add( new Variable("y"), new LetExpr("z",new Num(6),
-                                                                                            new Add(new Variable("a"), new Num(8))) ) ), new Variable("x") ) ) )
-        ->to_stringPP()== "_let x = 5\n"
-                          "_in  (_let y = 3\n"
-                          "      _in  y + _let z = 6\n"
-                          "               _in  a + 8) + x" );
+    else {
+        ostream<< "_false";
     }
 }
 
-TEST_CASE("Parse") {
+/**
+* \brief same as print function above
+* \param ostream unused
+* \param precedence unused
+* \param parentHasParen unused
+* \param caller_pos unused
+*/
+void BoolExpr::pretty_print_at(std::ostream  &ostream, precedence_t precedence, bool parentHasParen, std::streampos &caller_pos) {
+
+    if (boolean) {
+        ostream<< "_true";
+    }
+    else {
+        ostream<< "_false";
+    }
+}
+
+//********************** EQEXPR CLASS IMPLEMENTATIONS ***********************************
+
+/**
+* \brief constructor to make an equality expression
+* \param lhs left hand side of equality expression
+* \param rhs right hand side of equality expression
+*/
+EqExpr::EqExpr( PTR(Expr) lhs, PTR(Expr) rhs ) {
+    this->lhs = lhs;
+    this->rhs = rhs;
+}
+
+/**
+* \brief compares all fields of an equality expression to 'this' using recursion
+* \param comp expression to compare against this
+* \return recursive call comparing each field of equality expression. True if expressions are equal false if not.
+*/
+bool EqExpr::equals(PTR(Expr) comp) {
+
+    PTR(EqExpr) eqPtr = CAST(EqExpr)(comp);
+    if ( eqPtr == nullptr ) {
+        return false;
+    }
+    return eqPtr->lhs->equals(this->lhs) && eqPtr->rhs->equals(this->rhs);
+}
+
+/**
+* \brief gives result of expression determined by test_part conditional expression
+* \param env check if environment is null, if so create an empty environment object
+* \return Val object result of expression by recursive call interping expression until navigating to VarExpr or NumExpr
+*/
+PTR(Val) EqExpr::interp(PTR(Env) env) {
+    return NEW(BoolVal)(this->lhs->interp(env)->equals(this->rhs->interp(env)));
+}
+
+
+/**
+* \brief function returns expression parameter substituted in place of parameter valToSub
+* \param valToSub variable value to substitute expression for
+* \param expr expression to place in this expression valToSub
+* \return this if valToSub is not value withing expression, if it is return new expression with expr in place of valToSub
+*/
+PTR(Expr) EqExpr::subst( std::string valToSub, PTR(Expr) expr ) {
+    return NEW(EqExpr)(this->lhs->subst(valToSub, expr), this->rhs->subst(valToSub, expr));
+}
+
+/**
+* \brief converts equality expression to string using recursion to narrow down until var or num encountered
+ * surrounds whole expression in parenthesis, no space between expressions and prefixes
+* \param ostream used to convert equality expression to string
+*/
+void EqExpr::print( std::ostream &ostream) {
+    ostream << "(";
+    this->lhs->print(ostream);
+    ostream << "==";
+    this->rhs->print(ostream);
+    ostream << ")";
+
+}
+
+/**
+* \brief driver function for recursion call that takes in ostream
+* \param ostream used to convert equality expression  to string
+*/
+void EqExpr::pretty_print( std::ostream  &ostream) {
+
+    std::streampos pos = 0;
+    pretty_print_at(ostream, prec_none, false, pos);
+
+}
+
+/**
+* \brief converts equality expression to string using recursion to narrow down until var or num encountered
+ * places parenthesis to adhere to association to the right and our precedence scale
+* \param ostream used to convert function expression  to string
+* \param precedence precedence of the caller, will be prec_none
+* \param parentHasParen boolean signifying if parent caller is surrounded by parenthesis
+* \param caller_pos streampos reference to position of caller
+*/
+void EqExpr::pretty_print_at(std::ostream  &ostream, precedence_t precedence, bool parentHasParen, std::streampos &caller_pos) {
+
+    if(precedence > prec_none){
+        ostream << "(";
+    }
+
+    this->lhs->pretty_print_at(ostream, static_cast<precedence_t >(prec_none + 1), parentHasParen, caller_pos);
+    ostream << " == ";
+    this->rhs->pretty_print_at(ostream, prec_none, parentHasParen, caller_pos);
+
+    if(precedence > prec_none){
+        ostream << ")";
+    }
+}
+
+//********************** FUNEXPR CLASS IMPLEMENTATIONS ***********************************
+
+/**
+* \brief constructor to make an Function expression
+* \param formal_arg varible in body to be substituted
+* \param body exprssion containing formal_arg
+*/
+FunExpr::FunExpr( std::string formal_arg, PTR(Expr) body ){
+    this->formal_arg = std::move(formal_arg); //todo may need to change
+    this->body = body;
+}
+
+/**
+* \brief compares all fields of an function expression to 'this' using recursion
+* \param comp expression to compare against this
+* \return recursive call comparing each field of function expression. True if expressions are equal false if not.
+*/
+bool FunExpr::equals(PTR(Expr)comp){
+
+    PTR(FunExpr) funPtr = CAST(FunExpr)(comp);
+    if ( funPtr == nullptr ) {
+        return false;
+    }
+    else {
+        return funPtr->formal_arg == this->formal_arg  && funPtr->body->equals(this->body);
+    }
+}
+
+/**
+* \brief converts to a FunVal expresion with same fields including passed through environment
+* \param env dictionary
+* \return FunVal object
+*/
+PTR(Val) FunExpr::interp(PTR(Env) env){
     
-    SECTION("parse_str") {
-        
-        CHECK_THROWS_WITH( parse_str("()"), "invalid input" );
-        CHECK( parse_str("(1)")->equals(new Num(1)) );
-        CHECK( parse_str("(((1)))")->equals(new Num(1)) );
-        CHECK_THROWS_WITH( parse_str("(1"), "missing close parenthesis" );
-        CHECK( parse_str("1")->equals(new Num(1)) );
-        CHECK( parse_str("10")->equals(new Num(10)) );
-        CHECK( parse_str("-3")->equals(new Num(-3)) );
-        CHECK( parse_str(" \n 5 ")->equals(new Num(5)) );
-        CHECK_THROWS_WITH( parse_str("-"), "invalid input" );
-        CHECK_THROWS_WITH( parse_str(" - 5 "), "invalid input" );
-        CHECK( parse_str("x")->equals(new Variable("x")) );
-        CHECK( parse_str("xyz")->equals(new Variable("xyz")) );
-        CHECK( parse_str("xYz")->equals(new Variable("xYz")) );
-        CHECK_THROWS_WITH( parse_str("x_z"), "invalid input" );
-        CHECK_THROWS_WITH( parse_str("x-z"), "invalid input" );
-        CHECK( parse_str("x + y")->equals(new Add(new Variable("x"), new Variable("y"))) );
-        CHECK( parse_str("x * y")->equals(new Mult(new Variable("x"), new Variable("y"))) );
-        CHECK( parse_str("z * x + y")
-                       ->equals(new Add(new Mult(new Variable("z"), new Variable("x")),
-                                        new Variable("y"))) );
-        CHECK( parse_str("z * (x + y)")
-                       ->equals(new Mult(new Variable("z"),
-                                         new Add(new Variable("x"), new Variable("y"))) ));
-        CHECK( parse_str("_let x = 5 _in x + 5")->equals(new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(5)))));
-        CHECK( parse_str("_let x = 5 _in ((_let x = 5 _in x + 1) + x)")->equals(new LetExpr("x", new Num(5), new Add(new LetExpr("x", new Num(5), new Add(new Variable("x"), new Num(1))), new Variable("x")))));
-        CHECK( parse_str("_let x = 5 _in ((_let x = 5 _in x * 1) * x)")->equals(new LetExpr("x", new Num(5), new Mult(new LetExpr("x", new Num(5), new Mult(new Variable("x"), new Num(1))), new Variable("x")))));
-            }
+    return NEW(FunVal)(formal_arg, body, env);
 }
 
 
+/**
+* \brief function returns expression parameter substituted in place of parameter valToSub
+* \param valToSub variable value to substitute expression for
+* \param expr expression to place in this expression valToSub
+* \return this if valToSub is not value withing expression, if it is return new expression with expr in place of valToSub
+*/
+PTR(Expr) FunExpr::subst( std::string valToSub, PTR(Expr) expr ){
+
+    if ( valToSub == this->formal_arg) {
+        return THIS;
+    }
+    return NEW(FunExpr)(this->formal_arg, this->body->subst(valToSub, expr));
+}
+
+/**
+* \brief converts function expression to string using recursion to narrow down until var or num encountered
+ * surrounds whole expression in parenthesis, no space between expressions and prefixes
+* \param ostream used to convert function expression to string
+*/
+void FunExpr::print( std::ostream &ostream){
+
+    ostream << "(_fun (" << this->formal_arg << ") ";
+    this->body->print(ostream);
+    ostream << ")";
+}
+
+/**
+* \brief driver function for recursion call that takes in ostream
+* \param ostream used to convert function expression  to string
+*/
+void FunExpr::pretty_print( std::ostream  &ostream){
+    std::streampos initialPos = 0;
+    pretty_print_at(ostream, prec_none, false, initialPos);
+}
+
+/**
+* \brief converts function expression to string using recursion to narrow down until var or num encountered
+ * places parenthesis to adhere to association to the right and our precedence scale
+* \param ostream used to convert function expression  to string
+* \param precedence precedence of the caller, will be prec_none
+* \param parentHasParen boolean signifying if parent caller is surrounded by parenthesis
+* \param caller_pos streampos reference to position of caller
+*/
+void FunExpr::pretty_print_at(std::ostream  &ostream, precedence_t precedence, bool parentHasParen, std::streampos &caller_pos){
+    
+    
+    if ( precedence > prec_none ) {
+        ostream << "(";
+    }
+    
+    std::streampos initial_pos = ostream.tellp();
+    std::string kw_pos = std::string( initial_pos - caller_pos, ' ' );
+    
+    
+    ostream << "_fun (" << this->formal_arg << ")";
+    ostream << "\n";
+    
+    caller_pos = ostream.tellp();
+    ostream << kw_pos << "  ";
+    
+    this->body->pretty_print_at(ostream, prec_none, parentHasParen, caller_pos );
+
+    if ( precedence > prec_none ) {
+        ostream << ")";
+    }
+}
+
+//********************** CALLEXPR CLASS IMPLEMENTATIONS ***********************************
+
+/**
+* \brief constructor to make a call expression
+* \param to_be_called expression to containing value to be subbed will be a function expression
+* \param actual_arg expression to substitute with in to_be_called expression
+*/
+CallExpr::CallExpr( PTR(Expr) to_be_called, PTR(Expr) actual_arg ) {
+
+    this->to_be_called = to_be_called;
+    this->actual_arg = actual_arg;
+}
+
+/**
+* \brief compares all fields of an call expression to 'this' using recursion
+* \param comp expression to compare against this
+* \return recursive call comparing each field of call expression. True if expressions are equal false if not.
+*/
+bool CallExpr::equals(PTR(Expr) comp) {
+
+    PTR(CallExpr) callPtr = CAST(CallExpr)(comp);
+    if ( callPtr == nullptr ) {
+        return false;
+    }
+    else {
+        return callPtr->to_be_called->equals(this->to_be_called)  && callPtr->actual_arg->equals(this->actual_arg);
+    }
+}
+
+/**
+* \brief gives result of expression determined by test_part conditional expression
+* \param env check if environment is null, if so create an empty environment object
+* \return Val object result of to_be_called expression after substitution of actual_arg
+*/
+PTR(Val) CallExpr::interp(PTR(Env) env){
+
+    return to_be_called->interp(env)->call(actual_arg->interp(env));
+}
 
 
+/**
+* \brief function returns expression parameter substituted in place of parameter valToSub
+* \param valToSub variable value to substitute expression for
+* \param expr expression to place in this expression valToSub
+* \return this if valToSub is not value withing expression, if it is return new expression with expr in place of valToSub
+*/
+PTR(Expr) CallExpr::subst( std::string valToSub, PTR(Expr) expr ){
 
+    return NEW(CallExpr)(this->to_be_called->subst(valToSub,expr), this->actual_arg->subst(valToSub,expr)) ;
+}
+
+/**
+* \brief converts call expression to string using recursion to narrow down until var or num encountered
+ * surrounds whole expression in parenthesis, no space between expressions and prefixes
+* \param ostream used to convert call expression to string
+*/
+void CallExpr::print( std::ostream &ostream){
+
+  
+    this->to_be_called->print(ostream);
+    ostream<< " ";
+    this->actual_arg->print(ostream);
+}
+
+/**
+* \brief driver function for recursion call that takes in ostream
+* \param ostream used to convert call expression  to string
+*/
+void CallExpr::pretty_print(std::ostream &ostream) {
+    std::streampos initialPos = 0;
+    pretty_print_at(ostream, prec_none, false, initialPos);
+
+}
+
+/**
+* \brief converts call expression to string using recursion to narrow down until var or num encountered
+ * places parenthesis to adhere to association to the right and our precedence scale
+* \param ostream used to convert call expression  to string
+* \param precedence precedence of the caller, will be prec_none
+* \param parentHasParen boolean signifying if parent caller is surrounded by parenthesis
+* \param caller_pos streampos reference to position of caller
+*/
+void CallExpr::pretty_print_at(std::ostream  &ostream, precedence_t precedence, bool parentHasParen, std::streampos &caller_pos){
+    
+       
+    this->to_be_called->pretty_print_at(ostream, prec_none, parentHasParen, caller_pos);
+    ostream<< "(";
+    this->actual_arg->pretty_print_at(ostream, prec_none, parentHasParen, caller_pos);
+    ostream<< ")";
+
+}

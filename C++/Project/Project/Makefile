@@ -27,11 +27,12 @@
 
 CXX = c++
 CFLAGS = -std=c++11
-CXXSOURCE = cmdline.cpp main.cpp  Expr.cpp parse.cpp
-HEADERS = cmdline.hpp catch.hpp Expr.hpp parse.hpp
-CXXOBJECT = cmdline.o main.o Expr.o parse.o
+CXXSOURCE = cmdline.cpp main.cpp  Expr.cpp parse.cpp Val.cpp test_expr.cpp pointer.cpp Env.cpp
+HEADERS = cmdline.hpp catch.hpp Expr.hpp parse.hpp Val.hpp test_expr.hpp pointer.hpp Env.hpp
+CXXOBJECT = cmdline.o main.o Expr.o parse.o Val.o test_expr.o pointer.o Env.o
 DOC = Document
 DOX_CONFIG = Doxyfile
+SANITIZE = -fsanitize=undefined
 
 .SILENT:
 
@@ -41,7 +42,7 @@ all: msdscript
 
 msdscript: $(CXXSOURCE) $(HEADERS)
 	$(CXX) $(CFLAGS) -c $(CXXSOURCE)
-	$(CXX) $(CFLAGS) -o msdscript $(CXXOBJECT)
+	$(CXX) $(CFLAGS) $(SANITIZE) -o msdscript $(CXXOBJECT)
 
 run: msdscript
 	./msdscript

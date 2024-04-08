@@ -1,9 +1,9 @@
-//
-//  test_msdscript.cpp
-//  Project
-//
-//  Created by Ben Baysinger  on 2/20/24.
-//
+/**
+* \file test_msdscript.cpp
+* \brief contains test_msdscript class forward declarations and  implementations
+        Performs automated fuzz testing with randomly generated test cases 
+* \author Ben Baysinger
+*/
 
 #include <stdio.h>
 #include <iostream>
@@ -22,7 +22,7 @@ static std::string random_body_of_let(std::string lhs);
 
 
 int main(int argc, char **argv) {
-    srand (clock());
+    srand (static_cast<unsigned int>(clock()));
     
     if ( argc == 2 ) {
         
@@ -99,7 +99,10 @@ int main(int argc, char **argv) {
 return 0;
 }
 
-
+/**
+* \brief produces a random var string to test
+* \return random VarExpr as string
+*/
 std::string rand_var () {
     switch (rand() % 3){
         case 0: {
@@ -117,15 +120,28 @@ std::string rand_var () {
     return "";
 }
 
+/**
+* \brief produces a random AddExpr string to test. Recurses until variable or number is encountered.
+* \return random AddExpr as string
+*/
 std::string random_add_expr_string() {
    
         return random_expr_string() + "+" + random_expr_string();
 }
+
+/**
+* \brief produces a random MultExpr string to test. Recurses until variable or number is                 *      encountered.
+* \return random MultExpr as string
+*/
 std::string random_mult_expr_string() {
   
         return random_expr_string() + "*" + random_expr_string();
 }
 
+/**
+* \brief randomly generates num, var, add, mult, or let expressoin. Recurses until variable or number is                              encountered. Start of recursive chain
+* \return random expression as string
+*/
 std::string random_expr_string() {
     
     std::string errorMessage = "Error in random_expr \n";
@@ -146,6 +162,10 @@ std::string random_expr_string() {
     return std::to_string(rand());
 }
 
+/**
+* \brief produces a random LetExpr string to test. Recurses until variable or number is encountered. Binds lhs variable       in body of let expression
+* \return random LetExpr as string
+*/
 std::string random_let_expr_string() {
     
     std::string lhs = rand_var();
@@ -153,13 +173,21 @@ std::string random_let_expr_string() {
     return "_let " + lhs + "=" + random_expr_string() + " _in " + random_body_of_let(lhs);//that contains var
 }
 
-
+/**
+* \brief produces a random NumExpr string to  test.
+* \return random NumExpr as string
+*/
 std::string random_num_expr_string() {
     
     return std::to_string(rand());
    
 }
 
+/**
+* \brief produces body of let expression with param lhs contained within
+* \param lhs string varaible to be binded to in body of let expression
+* \return random expression to act as body of let expression
+*/
 std::string random_body_of_let(std::string lhs) {
     
     std::string errorMessage = "Error in random_expr \n";
