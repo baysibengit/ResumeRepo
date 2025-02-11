@@ -1,0 +1,157 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #__next {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+img {
+    max-height: 100%;
+}
+
+#toolbar {
+    height: 100%;
+}
+
+#content {
+    width: 100%;
+    background: #FFF;
+}
+
+
+#form {
+    background-color: rgb(138, 1, 148);
+}
+
+h1 {
+    @apply text-fuchsia-800 mb-2 text-xl; 
+}
+
+input, textarea, select {
+    @apply border border-gray-300 rounded-md px-1 w-full;
+    @apply mb-2; 
+}
+
+input:focus, textarea:focus, select:focus {
+    @apply border-fuchsia-800;
+}
+
+a:focus {
+    @apply bg-white text-fuchsia-800
+}
+
+label {
+    @apply text-white; 
+}
+
+.btn-primary{
+    @apply bg-white text-fuchsia-800 px-4 py-1 mb-1 rounded-md;
+}
+
+.btn-secondary {
+    @apply bg-fuchsia-800 text-white px-4 py-1 mb-1 rounded-md
+}
+
+.btn-negative {
+    @apply bg-red-800 text-white px-4 py-1 rounded-md 
+}
+
+.btn-neutral {
+    @apply bg-gray-400 text-white px-4 py-1 rounded-md mb-1
+}
+
+.btn-positive {
+    @apply bg-green-800 text-white px-4 py-1 mb-2 rounded-md
+}
+
+table.basic {
+    @apply w-full
+}
+
+table.basic thead tr td th {
+    @apply bg-fuchsia-800 text-white
+}
+
+table.basic tr td{
+    @apply border border-fuchsia-800 p-1 
+}
+
+/* table.basic a {
+    @apply bg-fuchsia-800 text-white text-sm py-1 px-2 rounded-md inline-flex gap-1 mr-1
+} */
+
+.editButton {
+    @apply bg-fuchsia-800 text-white text-sm py-1 px-2 rounded-md inline-flex gap-1 mr-1
+}
+
+.deleteButton {
+    @apply bg-red-800 text-white text-sm py-1 px-2 rounded-md inline-flex gap-1 mr-1
+}
+
+.btn-btn-default, .btn-red {
+    @apply px-4 py-1 rounded-md
+}
+
+.btn-red {
+    @apply bg-red-800 text-white
+}
+
+.btn-btn-default {
+    @apply bg-gray-500 text-white
+}
+
+.photosDiv {
+    @apply mb-2 flex flex-wrap gap-1
+}
+
+.imageLabel {
+    @apply  h-24 w-24 border text-white flex items-center justify-center text-sm gap-1 rounded-lg bg-gray-400 cursor-pointer 
+}
+
+.fileInput {
+    @apply hidden 
+}
+
+.imageDiv {
+    @apply h-24 bg-white border border-gray-900
+}
+
+.uploading {
+    @apply h-24 flex items-center mr-4
+}
+
+.loginScreen {
+    @apply bg-fuchsia-800 w-screen h-screen flex items-center
+}
+
+.googleDiv {
+    @apply text-center w-full
+}
+
+.googleButton {
+    @apply bg-white p-2 px-4 rounded-lg
+}
+
+.inactiveLink {
+    @apply flex gap-1 p-1 mt-2
+}
+
+.activeLink {
+    @apply flex gap-1 p-1 mt-2 bg-white text-fuchsia-800 rounded-l-lg
+}
+
+.categoryName {
+    @apply bg-fuchsia-800 text-white 
+}
+
+.toolbarContents {
+    @apply top-0 text-white p-4 fixed w-full h-full bg-fuchsia-800 md:static md:w-auto transition-all
+}
+
+.page {
+    @apply w-full min-h-screen bg-fuchsia-800
+}
+
